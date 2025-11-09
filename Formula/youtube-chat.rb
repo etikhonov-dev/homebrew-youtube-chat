@@ -1,26 +1,26 @@
 class YoutubeChat < Formula
   desc "YouTube CLI Companion - Ask any questions about video content"
   homepage "https://github.com/etikhonov-dev/homebrew-youtube-chat"
-  version "1.2.2"
+  version "1.2.3"
   license "CC-BY-NC-ND-4.0"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.2.2/youtube-chat-macos-arm64"
-      sha256 "025b2b07c38f281cbd137690951bade5cb2a1b1a418cb8471eeb07dc4550556f"
+      url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.2.3/youtube-chat-macos-arm64"
+      sha256 "a05811f9082c8a786ccd1e1ee9ce496b534d4d38521c1d880906271ed1283221"
     else
-      url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.2.2/youtube-chat-macos-x64"
-      sha256 "ac9e6eb3389d539ee61ad48018a6660d86fe18926d9c1bf62bcd89cf7967b2b8"
+      url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.2.3/youtube-chat-macos-x64"
+      sha256 "6fdf9a91d156ec8388ed4946c0beb12169902213f8a0afdac8545cba425dc53d"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.2.2/youtube-chat-linux-arm64"
-      sha256 "9e0fd33676aa72319854dc22901b67d1197f4dad4c8e9942acd5cf761ec454bb"
+      url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.2.3/youtube-chat-linux-arm64"
+      sha256 "2e82f0da5797d384d68a974b911accf21a008487a1666f889109250667aa2f1e"
     else
-      url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.2.2/youtube-chat-linux-x64"
-      sha256 "ed9db549418b1735a3e48a716739c6a0802d900f3d90d09857ac085f7d0f1420"
+      url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.2.3/youtube-chat-linux-x64"
+      sha256 "ac60b5627ffcd806ec1f7442d92c689d1923529d688947b6dab7d0742bb31246"
     end
   end
 
