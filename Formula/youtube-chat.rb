@@ -7,20 +7,20 @@ class YoutubeChat < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.3.2/youtube-chat-macos-arm64"
-      sha256 "0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5"
+      sha256 "66342bebcfa432c7afe5714663610da6732e215a87c9b61dba19a92e0200f082"
     else
       url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.3.2/youtube-chat-macos-x64"
-      sha256 "fc620750b37b79931cb5bee084cf8ec26aca6a8a9e50bc00f825a4578fccab28"
+      sha256 "b2cb932d9fd177b97d5f21e42fa04312b9714c53166126a5949963de1d9e46cd"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.3.2/youtube-chat-linux-arm64"
-      sha256 "370e4fee5abed1e54ab2c3c74fa9d7910eed5cd51e36f4364ea29676286bf9e2"
+      sha256 "d2118b3adf9276d17c8df2c2dee5e05a68aa0c34b4a6cafc0dc9a29a9509613c"
     else
       url "https://github.com/etikhonov-dev/homebrew-youtube-chat/releases/download/v1.3.2/youtube-chat-linux-x64"
-      sha256 "b87b52a36a84defc2f84ed4a45f32349c37b989b3e6c35cad25812b66c2eda0e"
+      sha256 "0797a1af7064ffb6c141543d008a4ed21064c9db70113ee880eba4efc07a7eb6"
     end
   end
 
