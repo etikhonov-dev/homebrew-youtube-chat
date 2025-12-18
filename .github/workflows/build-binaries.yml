@@ -1,0 +1,172 @@
+name: Build Binaries
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: bun-linux-x64
+            artifact: youtube-chat-linux-x64
+          - os: ubuntu-latest
+            target: bun-linux-arm64
+            artifact: youtube-chat-linux-arm64
+          - os: macos-latest
+            target: bun-darwin-x64
+            artifact: youtube-chat-macos-x64
+          - os: macos-latest
+            target: bun-darwin-arm64
+            artifact: youtube-chat-macos-arm64
+          - os: windows-latest
+            target: bun-windows-x64
+            artifact: youtube-chat-win-x64.exe
+
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout youtube-chat source repo
+        uses: actions/checkout@v4
+        with:
+          repository: etikhonov-dev/youtube-chat
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build binary
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          bun build --compile --define __APP_VERSION__="\"$VERSION\"" --target=${{ matrix.target }} index.tsx --outfile dist/${{ matrix.artifact }}
+
+      - name: Make binary executable (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x dist/${{ matrix.artifact }}
+
+      - name: Test binary
+        shell: bash
+        run: |
+          echo "Testing binary: ${{ matrix.artifact }}"
+
+          # Detect if we can run this binary on the current architecture
+          RUNNER_ARCH="${{ runner.arch }}"
+          TARGET="${{ matrix.target }}"
+          CAN_TEST=true
+
+          # Check for cross-compilation scenarios where we cannot test
+          if [[ "$TARGET" == *"arm64"* ]] && [[ "$RUNNER_ARCH" != "ARM64" ]]; then
+            echo "⚠️  Skipping tests: ARM64 binary cannot run on $RUNNER_ARCH runner"
+            CAN_TEST=false
+          elif [[ "$TARGET" == *"x64"* ]] && [[ "$RUNNER_ARCH" == "ARM64" ]]; then
+            echo "⚠️  Skipping tests: x64 binary cannot run on ARM64 runner"
+            CAN_TEST=false
+          fi
+
+          if [ "$CAN_TEST" = true ]; then
+            echo "✓ Binary architecture matches runner, proceeding with tests"
+            if [ "${{ runner.os }}" = "Windows" ]; then
+              bash scripts/test-binary.sh dist/${{ matrix.artifact }}
+            else
+              scripts/test-binary.sh dist/${{ matrix.artifact }}
+            fi
+          else
+            echo "✓ Binary built successfully (tests skipped for cross-compiled binary)"
+          fi
+
+      - name: Upload binary to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/${{ matrix.artifact }}
+          tag_name: ${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-formula:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout homebrew-youtube-chat repo
+        uses: actions/checkout@v4
+
+      - name: Download binaries and calculate checksums
+        id: checksums
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          REPO="etikhonov-dev/homebrew-youtube-chat"
+
+          echo "Downloading binaries and calculating SHA256 checksums..."
+
+          MACOS_ARM64_SHA=$(curl -sL "https://github.com/$REPO/releases/download/$VERSION/youtube-chat-macos-arm64" | sha256sum | cut -d' ' -f1)
+          MACOS_X64_SHA=$(curl -sL "https://github.com/$REPO/releases/download/$VERSION/youtube-chat-macos-x64" | sha256sum | cut -d' ' -f1)
+          LINUX_ARM64_SHA=$(curl -sL "https://github.com/$REPO/releases/download/$VERSION/youtube-chat-linux-arm64" | sha256sum | cut -d' ' -f1)
+          LINUX_X64_SHA=$(curl -sL "https://github.com/$REPO/releases/download/$VERSION/youtube-chat-linux-x64" | sha256sum | cut -d' ' -f1)
+
+          echo "macos_arm64=$MACOS_ARM64_SHA" >> $GITHUB_OUTPUT
+          echo "macos_x64=$MACOS_X64_SHA" >> $GITHUB_OUTPUT
+          echo "linux_arm64=$LINUX_ARM64_SHA" >> $GITHUB_OUTPUT
+          echo "linux_x64=$LINUX_X64_SHA" >> $GITHUB_OUTPUT
+
+          echo "Checksums calculated:"
+          echo "  macOS ARM64: $MACOS_ARM64_SHA"
+          echo "  macOS x64: $MACOS_X64_SHA"
+          echo "  Linux ARM64: $LINUX_ARM64_SHA"
+          echo "  Linux x64: $LINUX_X64_SHA"
+
+      - name: Update Formula
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION_NUMBER="${VERSION#v}"
+
+          # Update version
+          sed -i "s/version \".*\"/version \"$VERSION_NUMBER\"/" Formula/youtube-chat.rb
+
+          # Update download URLs
+          sed -i "s|download/v[0-9.a-z-]\+/|download/$VERSION/|g" Formula/youtube-chat.rb
+
+          # Update SHA256 checksums
+          sed -i "/youtube-chat-macos-arm64/,/sha256/ s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.macos_arm64 }}\"/" Formula/youtube-chat.rb
+          sed -i "/youtube-chat-macos-x64/,/sha256/ s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.macos_x64 }}\"/" Formula/youtube-chat.rb
+          sed -i "/youtube-chat-linux-arm64/,/sha256/ s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.linux_arm64 }}\"/" Formula/youtube-chat.rb
+          sed -i "/youtube-chat-linux-x64/,/sha256/ s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.linux_x64 }}\"/" Formula/youtube-chat.rb
+
+          echo "Formula updated to version $VERSION_NUMBER"
+
+          cat Formula/youtube-chat.rb
+
+      - name: Commit and push formula update
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+          git add Formula/youtube-chat.rb
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update formula to $VERSION"
+            git push
+            echo "Formula updated and pushed successfully"
+          fi
